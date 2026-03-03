@@ -7,6 +7,8 @@ import time
 import gnupg
 import getpass
 
+from key_policy import validar_destinatario, validar_remetente, POLITICA_PADRAO
+
 # Variáveis globais para comunicação segura entre as Threads
 fila_de_envio = None
 loop_assincrono = None
@@ -100,6 +102,21 @@ def main():
                 destino, texto = entrada.split(":", 1)
                 destino = destino.strip()
                 texto = texto.strip()
+                
+                # Política de validação de chaves: verificar antes de criptografar
+                resultado_dest = validar_destinatario(gpg, destino)
+                if not resultado_dest:
+                    print(f"\r\033[K[!] Chave rejeitada pela política: {resultado_dest.motivo}")
+                    print("> ", end="")
+                    sys.stdout.flush()
+                    continue
+                
+                resultado_rem = validar_remetente(gpg, username)
+                if not resultado_rem:
+                    print(f"\r\033[K[!] Chave rejeitada pela política: {resultado_rem.motivo}")
+                    print("> ", end="")
+                    sys.stdout.flush()
+                    continue
                 
                 # 1 e 2 e 3: Assinar com a chave de 'username' e Criptografar para 'destino'
                 # O python-gnupg faz as duas operações de uma só vez se passarmos o parâmetro 'sign'
