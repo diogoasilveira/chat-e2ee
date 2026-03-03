@@ -13,6 +13,9 @@ Políticas verificadas:
 
 import time
 
+# Segundos em um dia (constante para cálculos de idade/expiração)
+SEGUNDOS_POR_DIA = 86400
+
 # Níveis de confiança do GPG ordenados por prioridade
 NIVEIS_CONFIANCA = {
     "expired":   -1,
@@ -131,7 +134,7 @@ def validar_chave(info_chave, politica=None):
             try:
                 ts_criacao = int(data_criacao)
                 idade_segundos = time.time() - ts_criacao
-                idade_dias = idade_segundos / 86400
+                idade_dias = idade_segundos / SEGUNDOS_POR_DIA
                 if idade_dias > max_dias:
                     return ResultadoValidacao(
                         False,

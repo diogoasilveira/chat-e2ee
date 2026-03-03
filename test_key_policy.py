@@ -7,6 +7,7 @@ import unittest
 
 from key_policy import (
     POLITICA_PADRAO,
+    SEGUNDOS_POR_DIA,
     ResultadoValidacao,
     _valor_confianca,
     buscar_chave_por_uid,
@@ -61,8 +62,8 @@ class TestValidarChave(unittest.TestCase):
             "fingerprint": "ABCD1234",
             "trust": "f",
             "ownertrust": "full",
-            "expires": str(int(time.time()) + 86400 * 30),  # expira em 30 dias
-            "date": str(int(time.time()) - 86400 * 10),     # criada há 10 dias
+            "expires": str(int(time.time()) + SEGUNDOS_POR_DIA * 30),  # expira em 30 dias
+            "date": str(int(time.time()) - SEGUNDOS_POR_DIA * 10),     # criada há 10 dias
             "uids": ["alice <alice@example.com>"],
         }
         chave.update(overrides)
@@ -89,13 +90,13 @@ class TestValidarChave(unittest.TestCase):
 
     # -- Expiração --
     def test_chave_expirada_rejeitada(self):
-        chave = self._chave_valida(expires=str(int(time.time()) - 86400))
+        chave = self._chave_valida(expires=str(int(time.time()) - SEGUNDOS_POR_DIA))
         resultado = validar_chave(chave)
         self.assertFalse(resultado)
         self.assertIn("expirou", resultado.motivo)
 
     def test_chave_expirada_permitida_se_politica_desativada(self):
-        chave = self._chave_valida(expires=str(int(time.time()) - 86400))
+        chave = self._chave_valida(expires=str(int(time.time()) - SEGUNDOS_POR_DIA))
         politica = {**POLITICA_PADRAO, "rejeitar_chaves_expiradas": False}
         resultado = validar_chave(chave, politica)
         self.assertTrue(resultado)
@@ -129,20 +130,20 @@ class TestValidarChave(unittest.TestCase):
 
     # -- Idade máxima da chave --
     def test_chave_muito_antiga_rejeitada(self):
-        chave = self._chave_valida(date=str(int(time.time()) - 86400 * 400))
+        chave = self._chave_valida(date=str(int(time.time()) - SEGUNDOS_POR_DIA * 400))
         politica = {**POLITICA_PADRAO, "max_idade_chave_dias": 365}
         resultado = validar_chave(chave, politica)
         self.assertFalse(resultado)
         self.assertIn("excedendo", resultado.motivo)
 
     def test_chave_recente_aprovada(self):
-        chave = self._chave_valida(date=str(int(time.time()) - 86400 * 10))
+        chave = self._chave_valida(date=str(int(time.time()) - SEGUNDOS_POR_DIA * 10))
         politica = {**POLITICA_PADRAO, "max_idade_chave_dias": 365}
         resultado = validar_chave(chave, politica)
         self.assertTrue(resultado)
 
     def test_idade_sem_limite(self):
-        chave = self._chave_valida(date=str(int(time.time()) - 86400 * 9999))
+        chave = self._chave_valida(date=str(int(time.time()) - SEGUNDOS_POR_DIA * 9999))
         politica = {**POLITICA_PADRAO, "max_idade_chave_dias": 0}
         resultado = validar_chave(chave, politica)
         self.assertTrue(resultado)
