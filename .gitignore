@@ -1,2 +1,3 @@
 #Ignore venv
 chat/*
+__pycache__/
