@@ -14,7 +14,7 @@ loop_assincrono = None
 # ====================================================================
 # ÁREA DO MEMBRO 4 (RECEBIMENTO E REDE EM SEGUNDO PLANO)
 # ====================================================================
-async def gerenciar_rede(uri, username):
+async def gerenciar_rede(uri, username, gpg, session_passphrase):
     global fila_de_envio
     fila_de_envio = asyncio.Queue()
 
@@ -31,12 +31,13 @@ async def gerenciar_rede(uri, username):
                     origem = dados.get("origem")
                     payload_pgp = dados.get("payload_pgp")
                     
-                    # [!] AQUI ENTRA O CÓDIGO DO MEMBRO 4:
-                    # 1. Passar 'payload_pgp' para o python-gnupg
-                    # 2. Descriptografar e validar assinatura
-                    # texto_limpo = gpg.decrypt(payload_pgp)
-                    
-                    texto_limpo = payload_pgp # (Simulação enquanto não há PGP)
+                    # Descriptografar e validar assinatura com GPG
+                    resultado = gpg.decrypt(str(payload_pgp), passphrase=session_passphrase, always_trust=True)
+
+                    if resultado.ok:
+                        texto_limpo = str(resultado)
+                    else:
+                        texto_limpo = f"[Erro na descriptografia: {resultado.status}]"
 
                     # Imprime a mensagem recebida e recria o prompt de digitação
                     print(f"\r\033[K[Mensagem de {origem}]: {texto_limpo}")
@@ -55,12 +56,12 @@ async def gerenciar_rede(uri, username):
     except ConnectionRefusedError:
         print("\n[!] Erro: Não foi possível conectar ao Servidor Relay.")
 
-def iniciar_thread_da_rede(uri, username):
+def iniciar_thread_da_rede(uri, username, gpg, session_passphrase):
     """Função isolada que inicializa o loop assíncrono na thread secundária"""
     global loop_assincrono
     loop_assincrono = asyncio.new_event_loop()
     asyncio.set_event_loop(loop_assincrono)
-    loop_assincrono.run_until_complete(gerenciar_rede(uri, username))
+    loop_assincrono.run_until_complete(gerenciar_rede(uri, username, gpg, session_passphrase))
 
 # ====================================================================
 # ÁREA DO MEMBRO 3 (ENVIO E INTERFACE PRINCIPAL)
@@ -81,7 +82,7 @@ def main():
     uri = "ws://localhost:8765"
 
     # Inicia a Rede em uma Thread separada (Modo Daemon para fechar junto com o app)
-    thread_rede = threading.Thread(target=iniciar_thread_da_rede, args=(uri, username), daemon=True)
+    thread_rede = threading.Thread(target=iniciar_thread_da_rede, args=(uri, username, gpg, session_passphrase), daemon=True)
     thread_rede.start()
 
     # Aguarda um milissegundo para a fila assíncrona ser criada

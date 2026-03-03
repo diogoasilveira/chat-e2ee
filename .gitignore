@@ -1,2 +1,4 @@
 #Ignore venv
 chat/*
+.gnupg_chat_client/
+tmpclaude-*
